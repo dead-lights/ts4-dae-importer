@@ -1,16 +1,23 @@
+import bpy
+import bpy.ops
+from bpy.types import Operator
+from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy_extras.io_utils import ImportHelper
+
+
 # this won't work if there's anoter rig in the scene
 # after importing collada, the active object is the rig
 def import_dae(filepath):
 	name = bpy.path.display_name_from_filepath(filepath)
-    view_layer = bpy.context.view_layer
-    print(f'Importing {name}...')
-    # import collada
-    bpy.ops.wm.collada_import(filepath=filepath, display_type='DEFAULT')
-    # rig is active object now after import
-    rig = view_layer.objects.active
-    rig.name = f'{name}_rig'
-    # upon import the main model is automatically at [0] and glass is at [1]
-    # this will change when you rename the main model
+	view_layer = bpy.context.view_layer
+	print(f'Importing {name}...')
+	# import collada
+	bpy.ops.wm.collada_import(filepath=filepath, display_type='DEFAULT')
+	# rig is active object now after import
+	rig = view_layer.objects.active
+	rig.name = f'{name}_rig'
+	# upon import the main model is automatically at [0] and glass is at [1]
+	# this will change when you rename the main model
 	model = rig.children[0]
 	# check for glass, do this before renaming main model so it's still alphabetical
 	if len(rig.children) > 1:
@@ -18,15 +25,15 @@ def import_dae(filepath):
 		print(f'glass identified: {glass.name}')
 		config_object(glass, f'{name}_glass', merge=False)
 		config_shaders(glass, has_normal=False, has_alpha=True)
-    	# for child in rig.children:
-    	# 	# check to see if last 5 characters are 'glass' since it imports like that
-    	# 	if child.name[-5:] == 'glass':
-    	# 		print(f'Child identified: {child.name}')
-    	# 		config_object(child, f'{name}_glass')
-    config_object(model, name, merge=True)
-    config_shaders(model, filepath=filepath, name=name)
-    # not sure if I need to go back to this being active but I'll leave it for now
-    view_layer.objects.active = rig
+	# for child in rig.children:
+	# 	# check to see if last 5 characters are 'glass' since it imports like that
+	# 	if child.name[-5:] == 'glass':
+	# 		print(f'Child identified: {child.name}')
+	# 		config_object(child, f'{name}_glass')
+	config_object(model, name, merge=True)
+	config_shaders(model, filepath=filepath, name=name)
+	# not sure if I need to go back to this being active but I'll leave it for now
+	view_layer.objects.active = rig
 
 
 # this is pretty barebones but I might need to use it later
@@ -42,10 +49,10 @@ def config_object(model, name, merge=False):
 def merge_vertices(model):
 	bpy.context.view_layer.objects.active = model
 	bpy.ops.object.editmode_toggle()
-    bpy.ops.mesh.select_all(action='SELECT')
-    bpy.ops.mesh.remove_doubles(threshold=0.0001, use_unselected=True, use_sharp_edge_from_normals=True)
-    bpy.ops.object.editmode_toggle()
-    print('merge_vertices()')
+	bpy.ops.mesh.select_all(action='SELECT')
+	bpy.ops.mesh.remove_doubles(threshold=0.0001, use_unselected=True, use_sharp_edge_from_normals=True)
+	bpy.ops.object.editmode_toggle()
+	print('merge_vertices()')
 
 
 # this should work with or without glass
@@ -78,7 +85,7 @@ def config_normal(tree, filepath, name):
 	# create vector mapping node and attach to normal_map
 	mapping = nodes.new('ShaderNodeMapping')
 	mapping.inputs['Scale'].default_value = (2, 2, 2)
-	tree.links.new(normal_map.inputs['Vector'], mapping.outputs['Vector'])
+	tree.links.new(normal_map.inputs['Color'], mapping.outputs['Vector'])
 	# create and attach image texture node
 	normal_texture = nodes.new ('ShaderNodeTexImage')
 	tree.links.new(mapping.inputs["Vector"], normal_texture.outputs['Color'])
@@ -88,14 +95,14 @@ def config_normal(tree, filepath, name):
 	normal_path = f'{filepath[:-length]}{clean_name}_normalmap.png'
 	print(f'normal path: {normal_path}')
 	filename = f'{clean_name}_normalmap.png'
-    print(f'filename: {filename}')
-    dir_path = filepath[:-len(f'{name}.dae')]
-    print(f'dir_path = {dir_path}')
-    relpath = bpy.path.relpath(normal_path)
-    print(f'relpath: {relpath}')
-    bpy.ops.image.open(filepath=relpath, directory=dir_path, files=[{"name":filename, "name":filename}], show_multiview=False)
-    # set image
-    normal_texture.image = bpy.data.images.get(filename)
+	print(f'filename: {filename}')
+	dir_path = filepath[:-len(f'{name}.dae')]
+	print(f'dir_path = {dir_path}')
+	relpath = bpy.path.relpath(normal_path)
+	print(f'relpath: {relpath}')
+	bpy.ops.image.open(filepath=relpath, directory=dir_path, files=[{"name":filename, "name":filename}], show_multiview=False)
+	# set image
+	normal_texture.image = bpy.data.images.get(filename)
 
 
 # for use only when glass layer is present
@@ -114,28 +121,28 @@ def import_model(context, filepath):
 
 # sets up the script to run in this environment
 class ImportModel(Operator, ImportHelper):
-    bl_idname = 'import_test.import_model'
-    bl_label = 'Import DAE'
+	bl_idname = 'import_test.import_model'
+	bl_label = 'Import DAE'
 
-    filename_ext = '.dae'
+	filename_ext = '.dae'
 
-    filter_glob: StringProperty(
-        default='*.dae',
-        options={'HIDDEN'},
-        maxLen=255
-    )
+	filter_glob: StringProperty(
+		default='*.dae',
+		options={'HIDDEN'},
+		maxLen=255
+		)
 
-    def execute(self, context):
-        return import_model(context, self.filepath)
+	def execute(self, context):
+		return import_model(context, self.filepath)
 
 def register():
-    bpy.utils.register_class(ImportModel)
+	bpy.utils.register_class(ImportModel)
 
 def unregister():
-    bpy.utils.unregister_class(ImportModel)
+	bpy.utils.unregister_class(ImportModel)
 
 
 # run program!
 if __name__ == "__main__":
-    register()
-    bpy.ops.import_test.import_model('INVOKE_DEFAULT')
+	register()
+	bpy.ops.import_test.import_model('INVOKE_DEFAULT')
