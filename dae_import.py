@@ -18,10 +18,25 @@ def import_dae(filepath):
     if 'rig' in bpy.data.objects: # change this to look for rig in just that collection
         rig = bpy.data.objects['rig']
         rig.name = f'{name}_rig'
+        # by default adding model leaves names ModelName and ModelName_glass
+        # this means that upon import, ModelName will always come first
         model = rig.children[0]
+        # at this point the index for model will likely change relative to glass name
         model.name = name
         view_layer.objects.active = model
-        view_layer.objects.active.active_material.name = f'{name}_material'
+        model.active_material.name = f'{name}_material'
+        # check for glass
+        if len(rig.children) > 1:
+            print("multiple children found")
+            print([child.name for child in rig.children])
+            for child in rig.children:
+                if child.name[-5:] == 'glass':
+                    print(f'found child: {child.name}')
+                    glass_specular(child, name)
+        # if rig.children[1].name[-5:] == 'glass':
+        #     print("found child!")
+        #     view_layer.objects.active = rig.children[1]
+        #     glass_specular(name)
     if 'Lamp' in bpy.data.objects:
         bpy.data.objects.remove(bpy.data.objects['Lamp'])
     return {'FINISHED'}
@@ -32,6 +47,25 @@ def merge_vertices():
     bpy.ops.mesh.remove_doubles(threshold=0.0001, use_unselected=True, use_sharp_edge_from_normals=True)
     bpy.ops.object.editmode_toggle()
     print('merge_vertices()')
+
+def glass_specular(glass, name):
+    print(f'glass_specular({name})')
+    glass = glass
+    glass.name = f'{name}_glass'
+    print(f'active object: {glass.name}')
+    material = glass.active_material
+    material.name = f'{glass.name}_material'
+    tree = material.node_tree
+    nodes = tree.nodes
+    bsdf = nodes.get("Principled BSDF")
+    base_color_alpha_input = bsdf.inputs["Alpha"]
+    base_color_node = nodes.get("Image Texture")
+    base_color_alpha_output = base_color_node.outputs["Alpha"]
+    tree.links.new(base_color_alpha_input, base_color_alpha_output)
+    spec_input = bsdf.inputs["Specular IOR Level"]
+    spec_tex = nodes.get("Image Texture.001")
+    spec_output = spec_tex.outputs["Alpha"]
+    tree.links.new(spec_input, spec_output)
 
 def specular(filepath):
     model = bpy.context.view_layer.objects.active
