@@ -5,7 +5,6 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy_extras.io_utils import ImportHelper
 
 
-# this won't work if there's anoter rig in the scene
 # after importing collada, the active object is the rig
 def import_dae(filepath):
 	name = bpy.path.display_name_from_filepath(filepath)
@@ -25,18 +24,12 @@ def import_dae(filepath):
 		print(f'glass identified: {glass.name}')
 		config_object(glass, f'{name}_glass', merge=False)
 		config_shaders(glass, has_normal=False, has_alpha=True)
-	# for child in rig.children:
-	# 	# check to see if last 5 characters are 'glass' since it imports like that
-	# 	if child.name[-5:] == 'glass':
-	# 		print(f'Child identified: {child.name}')
-	# 		config_object(child, f'{name}_glass')
 	config_object(model, name, merge=True)
 	config_shaders(model, filepath=filepath, name=name)
 	# not sure if I need to go back to this being active but I'll leave it for now
 	view_layer.objects.active = rig
 
 
-# this is pretty barebones but I might need to use it later
 # renames object and material
 def config_object(model, name, merge=False):
 	model.name = name
@@ -110,8 +103,7 @@ def config_alpha(tree):
 	nodes = tree.nodes
 	bsdf = nodes.get('Principled BSDF')
 	base_color_node = nodes.get('Image Texture')
-	alpha_output = base_color_node.outputs['Alpha']
-	tree.links.new(bsdf.inputs['Alpha'], alpha_output)
+	tree.links.new(bsdf.inputs['Alpha'], base_color_node.outputs['Alpha'])
 
 
 def import_model(context, filepath):
