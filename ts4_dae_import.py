@@ -42,53 +42,88 @@ def import_dae(filepath):
 	# not sure if I need to go back to this being active but I'll leave it for now
 	view_layer.objects.active = rig
 
-
 def arrange_nodes(tree):
 	nodes = tree.nodes
-	# declare nodes
+	print([f'{node.name} | location: ({node.location.x}, {node.location.y}); width: {node.width}; height: {node.height}' for node in nodes])
+	# reference nodes
 	bsdf = nodes.get('Principled BSDF')
-	print(f'bsdf location: ({bsdf.location.x}, {bsdf.location.y})')
 	mat_output = nodes.get('Material Output')
-	print(f'material location: ({mat_output.location.x}, {mat_output.location.y})')
-	base_color = nodes.get('Image Texture')
-	print(f'base_color.dimensions: ({base_color.width}, {base_color.height})')
-	print(f'base color location: ({base_color.location.x}, {base_color.location.y})')
+	color = nodes.get('Image Texture')
+	spec = nodes.get('Image Texture.001')
 	ambient = nodes.get('RGB')
-	print(f'ambient location: ({ambient.location.x}, {ambient.location.y})')
-	specular = nodes.get('Image Texture.001')
-	print(f'specular location: ({specular.location.x}, {specular.location.y})')
-	# this part works
-	print(f'ambient: ({ambient.location.x}, {ambient.location.y})')
-	ambient_x = mat_output.location.x
-	ambient_y = mat_output.location.y - mat_output.dimensions.y
-	ambient.location = (ambient_x, ambient_y)
-	print(f'ambient moved to: ({ambient.location.x}, {ambient.location.y})')
-
+	spacing = bsdf.location.x - color.location.x + color.width
+	# move ambient below material output
+	ambient.location.x = mat_output.location.x
+	ambient.location.y = mat_output.location.y - 175
+	# Image Texture.002 is how normal maps import - glass does not have normal
 	if 'Image Texture.002' in nodes:
-		normal_map = nodes.get('Normal Map')
-		print(f'normal map location: ({normal_map.location.x}, {normal_map.location.y})')
-		normal_map_x = base_color.location.x + (base_color.width/2) - (normal_map.width/2)
-		normal_map_y = bsdf.location.y - base_color.height
-		normal_map.location = (normal_map_x, normal_map_y)
-		print(f'normal map moved to: ({specular.location.x}, {specular.location.y})')
-
-		mapping = nodes.get('Mapping')
-		print(f'mapping location: ({mapping.location.x}, {mapping.location.y})')
-		mapping.location.x = base_color.location.x - mapping.width
-		mapping.location.y = normal_map.location.y
-		print(f'mapping moved to: ({mapping.location.x}, {mapping.location.y})')
-
 		normal = nodes.get('Image Texture.002')
-		print(f'normal location: ({normal.location.x}, {normal.location.y})')
-		normal.location.x = mapping.location.x - normal.width
-		normal.location.y = normal_map.location.y
-		print(f'normal moved to: ({normal.location.x}, {normal.location.y})')
-
+		mapping = nodes.get('Mapping')
+		normal_map = nodes.get('Normal Map')
+		# move normal map underneath base color
+		normal_map.location.x = color.location.x + color.width/2 - normal_map.width/2
+		normal_map.location.y = color.location.y - 325
+		# move mapping to the left of base color level with normal map
+		mapping.location.x = color.location.x - (mapping.width+25)
+		mapping.location.y = normal_map.location.y
+		# move normal to the left of mapping at the same y
+		normal.location.x = mapping.location.x - (normal.width+25)
+		normal.location.y = mapping.location.y
+		spec.location.y = normal_map.location.y - 200
+	# when there's no normal map like with glass move specular closer to base color
 	else:
-		print(f'specular location: ({specular.location.x}, {specular.location.y})')
-		specular.location.x = base_color.location.x
-		specular.location.y = base_color.location.y - base_color.height
-		print(f'specular moved to: ({specular.location.x}, {specular.location.y})')
+		spec.location.x = color.location.x
+		spec.location.y = color.location.y - 300
+	print([f'{node.name}: ({node.location.x},{node.location.y})' for node in nodes])
+
+
+
+# def arrange_nodes(tree):
+# 	nodes = tree.nodes
+# 	# declare nodes
+# 	bsdf = nodes.get('Principled BSDF')
+# 	print(f'bsdf location: ({bsdf.location.x}, {bsdf.location.y})')
+# 	mat_output = nodes.get('Material Output')
+# 	print(f'material location: ({mat_output.location.x}, {mat_output.location.y})')
+# 	base_color = nodes.get('Image Texture')
+# 	print(f'base_color.dimensions: ({base_color.width}, {base_color.height})')
+# 	print(f'base color location: ({base_color.location.x}, {base_color.location.y})')
+# 	ambient = nodes.get('RGB')
+# 	print(f'ambient location: ({ambient.location.x}, {ambient.location.y})')
+# 	specular = nodes.get('Image Texture.001')
+# 	print(f'specular location: ({specular.location.x}, {specular.location.y})')
+# 	# this part works
+# 	print(f'ambient: ({ambient.location.x}, {ambient.location.y})')
+# 	ambient_x = mat_output.location.x
+# 	ambient_y = mat_output.location.y - mat_output.dimensions.y
+# 	ambient.location = (ambient_x, ambient_y)
+# 	print(f'ambient moved to: ({ambient.location.x}, {ambient.location.y})')
+
+# 	if 'Image Texture.002' in nodes:
+# 		normal_map = nodes.get('Normal Map')
+# 		print(f'normal map location: ({normal_map.location.x}, {normal_map.location.y})')
+# 		normal_map_x = base_color.location.x + (base_color.width/2) - (normal_map.width/2)
+# 		normal_map_y = bsdf.location.y - base_color.height
+# 		normal_map.location = (normal_map_x, normal_map_y)
+# 		print(f'normal map moved to: ({specular.location.x}, {specular.location.y})')
+
+# 		mapping = nodes.get('Mapping')
+# 		print(f'mapping location: ({mapping.location.x}, {mapping.location.y})')
+# 		mapping.location.x = base_color.location.x - mapping.dimensions.x
+# 		mapping.location.y = normal_map.location.y
+# 		print(f'mapping moved to: ({mapping.location.x}, {mapping.location.y})')
+
+# 		normal = nodes.get('Image Texture.002')
+# 		print(f'normal location: ({normal.location.x}, {normal.location.y})')
+# 		normal.location.x = mapping.location.x - normal.dimensions.x
+# 		normal.location.y = normal_map.location.y
+# 		print(f'normal moved to: ({normal.location.x}, {normal.location.y})')
+
+# 	else:
+# 		print(f'specular location: ({specular.location.x}, {specular.location.y})')
+# 		specular.location.x = base_color.location.x
+# 		specular.location.y = base_color.location.y - base_color.dimensions.y
+# 		print(f'specular moved to: ({specular.location.x}, {specular.location.y})')
 
 
 
