@@ -1,5 +1,8 @@
 import bpy
 
+# !!!! https://docs.blender.org/api/current/bpy.types.FileHandler.html read here
+
+
 
 def import_poses(context, filepath):
     pack_name = get_pack_name()
@@ -83,10 +86,15 @@ class ImportPose(Operator, ImportHelper):
     #     default='OPT_A',
     # )
 
+    directory: bpy.props.StringProperty(subtype='FILE_PATH', options={'SKIP_SAVE', 'HIDDEN'})
+    files: bpy.props.CollectionProperty(type=bpy.types.OperatorFileListElement, options={'SKIP_SAVE', 'HIDDEN'})
+
     # TODO figure out how to 
     def execute(self, context):
-        print(f'self.filepath = {self.filepath}')
-        return import_poses(context, self.filepath)
+        # print(f'self.filepath = {self.filepath}')
+        # return import_poses(context, self.filepath)
+        print([file.name for file in self.files])
+        return {'FINISHED'}
 
 
 # Only needed if you want to add into a dynamic menu.
